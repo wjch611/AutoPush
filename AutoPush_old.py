@@ -4,9 +4,6 @@ import argparse
 from datetime import datetime
 import shlex
 
-import subprocess
-import shlex
-
 def run_git_command(cmd, cwd):
     """执行Git命令并处理错误"""
     try:
@@ -14,18 +11,17 @@ def run_git_command(cmd, cwd):
             cmd = shlex.split(cmd)
             
         result = subprocess.run(
-            cmd,
+            cmd, 
             cwd=cwd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True,          # 以字符串形式返回输出
-            encoding='utf-8'    # 使用 UTF-8 编码避免解码错误
+            text=True
         )
         if result.returncode != 0:
-            error_output = result.stderr.strip() if result.stderr else "未知错误"
-            print(f"错误: {' '.join(cmd)}\n{result.stdout.strip() if result.stdout else ''}\n{error_output}")
+            error_output = result.stderr.strip()
+            print(f"错误: {' '.join(cmd)}\n{result.stdout.strip()}\n{error_output}")
             return None
-        return result.stdout.strip() if result.stdout else ""
+        return result.stdout.strip()
     except Exception as e:
         print(f"执行命令时出错: {e}")
         return None
@@ -92,12 +88,6 @@ def main():
         print("没有检测到文件变更，跳过提交")
         exit(0)
 
-    # 获取当前HEAD的commit hash
-    previous_commit = run_git_command("git rev-parse HEAD", repo_dir)
-    if not previous_commit:
-        print("无法获取当前HEAD commit")
-        exit(1)
-
     # 执行提交
     commit_msg = f"自动提交: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     print(f"检测到文件变更，正在提交 {repo_dir} 到分支 {branch}...")
@@ -113,23 +103,11 @@ def main():
         print("提交失败")
         exit(1)
     
-    # ... 其他代码保持不变 ...
-
     # 推送变更
     push_cmd = f"git push -q origin {branch} --force"
     push_result = run_git_command(push_cmd, repo_dir)
-
+    
     if push_result is None:
-        print("推送失败，正在回滚提交...")
-        # 使用 --mixed 回滚，保留工作目录修改
-        if run_git_command(f"git reset --mixed {previous_commit}", repo_dir) is None:
-            print("回滚失败，请手动检查仓库状态")
-        else:
-            print("提交已回滚，文件变更仍存在，下次运行将再次尝试提交")
-        exit(1)
-
-    # ... 其他代码保持不变 ...
-        
         print("\n推送失败，请检查以下配置：")
         print("1. 确保已添加SSH密钥到GitHub")
         print("2. 测试SSH连接: ssh -T git@github.com")
